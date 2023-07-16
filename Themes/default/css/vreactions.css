@@ -6,9 +6,11 @@
  * @license http://www.mozilla.org/MPL/MPL-1.1.html
  */
 
- .versatile_reacations {
-	display: block;
+ .versatile_reactions {
+	display: flex;
+	justify-content: center;
 	position: relative;
+	padding: 4px;
 }
 
 .emojis_wrapper, .emojis, .counts {
@@ -18,24 +20,40 @@
 }
 
 .emojis_wrapper {
-	border-radius: 20px;
-	border: 1px solid #555;
-	padding: 2px;
+	border-radius: 4px;
+	padding: 4px 2px;
 	cursor: pointer;
+	margin: 0 4px;
+	opacity: 0.2;
+	transition-duration: 0.3s;
+}
+
+.reacted {
+	opacity: 1.0;
+}
+
+.emojis_wrapper:hover {
+	opacity: 1.0;
+	background-color: #0773;
 }
 
 .emojis img {
-	width: 26px;
-	height: 26px;
+	display: block;
+	width: 20px;
+	height: 20px;
+	margin: 0 2px;
 }
 
-.counts {
-	font-size: 14px;
+.counts:not(:empty) {
+	font-size: 16px;
 }
+
 .who_reacted {
-    margin-top: 10px;
-    z-index: 99;
-    position: absolute;
-    padding: 5px 20px 5px 5px;
-    border: 1px solid #555;
+	 margin-top: 36px;
+	 z-index: 99;
+	 position: absolute;
+	 padding: 5px 5px 5px 5px;
+	 border: 1px solid #555;
+	 background-color: #555;
+	 color: #FFF;
 }

@@ -59,10 +59,9 @@ function loadreactionscripts() {
 function updateModSettings(&$config_vars) {
 
 	//to update modification settings
-	$config_vars = array(
-		//versatile reactions
-		array('check', 'vreactions_revert_enabled'),
-	);
+	if (!empty($config_vars))	$config_vars[] = '';
+
+		$config_vars[] = array('check', 'vreactions_revert_enabled');
 }
 
 /**
@@ -117,12 +116,12 @@ function loadreactionemojis($msg_id, $member_id) {
 			$emoji_format = 'gif'; //emoji format
 
 			echo '
-				<div class="emojis_wrapper windowbg2" id="emojis_wrapper-', $rows[0], '">
+				<div class="', getreactioncount($msg_id, $rows[0]) == 0 ? "" : "reacted " ,'emojis_wrapper windowbg2" id="emojis_wrapper-', $rows[0], '">
 					<div class="emojis" id="emoji-', $rows[0], '-', $msg_id, '" onclick="loadreactions(', $msg_id, ', ', $rows[0], ',', $member_id, ', event);">
 					<a href=""><img src="', $settings['default_images_url'], '/reactions/', $rows[1], '.', $emoji_format, '" alt="', $rows[2], '" title="', $rows[2], '"></a>
-					</div>
-					<div class="counts" id="counts-', $rows[0], '-', $msg_id, '">
-					', getreactioncount($msg_id, $rows[0]), '
+					</div>',
+					'<div class="counts" id="counts-', $rows[0], '-', $msg_id, '">
+					', getreactioncount($msg_id, $rows[0]) == 0 ? "" : getreactioncount($msg_id, $rows[0]) , '
 					</div>
 				</div>
 			';
@@ -169,7 +168,7 @@ function addreaction($msg_id, $emoji_id, $member_id) {
 
 	//we want to check if the user has previously reacted to the msg with same emoji..
 	$row = $smcFunc['db_fetch_assoc']($query);
-	$who_reacts = explode(",", $row['members_id']);
+	$who_reacts = is_null($row) ? [] : explode(",", $row['members_id']);
 
 	for ($x=0; $x<sizeof($who_reacts); $x++) {
 
@@ -250,7 +249,8 @@ function removeReaction($msg_id, $emoji_id, $member_id) {
 		//resetting the rows data..
 		// $smcFunc['db_data_seek']($query, 0);
 
-		$who_reacts = explode(",", $row['members_id']);
+		//$who_reacts = explode(",", $row['members_id']);
+		$who_reacts = is_null($row) ? [] : explode(",", $row['members_id']);
 		$delete_member = array_diff($who_reacts, array($member_id));
 		$who_reacts = implode(",", $delete_member);
 
@@ -277,9 +277,11 @@ function removeReaction($msg_id, $emoji_id, $member_id) {
 
 		$smcFunc['db_query']('',
 			'DELETE FROM {db_prefix}v_reactions
-			WHERE emoji_id = {int:id_emoji}',
+			WHERE emoji_id = {int:id_emoji}
+			AND msg_id = {int:id_msg}',
 			array(
 				'id_emoji' => $emoji_id,
+				'id_msg' => $msg_id,
 			)
 		);
 
@@ -311,12 +313,10 @@ function getwhoreacted($msg_id, $emoji_id) {
 
 	//we want to check if nobody has yet reacted..
 	$check = $smcFunc['db_num_rows']($query);
-	if ( $check == 0 ) return $txt['vreactions_empty'];
-	//we want to check if someone or more have reacted. Display there names.
-	else {
-
+	if ( $check == 0 ) {
 		$row = $smcFunc['db_fetch_assoc']($query);
-		$who_reacts = explode(",", $row['members_id']);
+		//$who_reacts = explode(",", $row['members_id']);
+		$who_reacts = is_null($row) ? [] : explode(",", $row['members_id']);
 
 		$emoji_query = $smcFunc['db_query']('',
 			'SELECT * FROM {db_prefix}v_reactions_emoji 
@@ -327,27 +327,58 @@ function getwhoreacted($msg_id, $emoji_id) {
 		);
 
 		$emoji_data = $smcFunc['db_fetch_assoc']($emoji_query);
-		$emoji_name = $emoji_data['emoji_name'];
+		$emoji_name = $emoji_data['emoji_title'];
 
-		$data = $txt['vreactions_members_reacted']. ' ' .$emoji_name. ':';
-		$data .= '<table><tr class="windowbg2">';
-		for($x=0; $x<sizeof($who_reacts); $x++ ) {
+		return "React with: " . $emoji_name;
+	}	
+	//we want to check if someone or more have reacted. Display there names.
+	else {
+
+		$row = $smcFunc['db_fetch_assoc']($query);
+		//$who_reacts = explode(",", $row['members_id']);
+		$who_reacts = is_null($row) ? [] : explode(",", $row['members_id']);
+
+		$emoji_query = $smcFunc['db_query']('',
+			'SELECT * FROM {db_prefix}v_reactions_emoji 
+			WHERE emoji_id = {int:id_emoji} LIMIT 1',
+			array(
+				'id_emoji' => $emoji_id,
+			)
+		);
+
+		$emoji_data = $smcFunc['db_fetch_assoc']($emoji_query);
+		$emoji_name = $emoji_data['emoji_title'];
+
+		$data = $txt['vreactions_members_reacted']. ' ' .$emoji_name. ': ';
+		//$data .= '<table><tr class="windowbg2">';
+		$data .= '';
+		for($x=1; $x<=sizeof($who_reacts); $x++ ) {
 
 			$request = $smcFunc['db_query']('',
 				'SELECT real_name FROM {db_prefix}members 
 				WHERE id_member = {int:member_id}',
 				array(
-					'member_id' => (int)$who_reacts[$x],
+					'member_id' => (int)$who_reacts[$x-1],
 				)
 			);
 
 			$get = $smcFunc['db_fetch_assoc']($request);
 			$realname = $get['real_name'];
-			$data .= '<td class="centertext">' .$realname. ',</td>';
+			//$data .= '<td class="centertext">' .$realname. ',</td>';
+			if ($x < sizeof($who_reacts)) {
+				$data .= $realname. ', ';
+			} else {
+				$data .= $realname;
+			}
+
+			//if($x%8 == 0) $data .= '</tr><tr class="windowbg2">';
+
+			
 			//lets free the query..
 			$smcFunc['db_free_result']($request);
 		}
-		$data .= '</tr></table>';
+		//$data .= '</tr></table>';
+		$data .= '.';
 		return $data;
 
 		//lets free the query..

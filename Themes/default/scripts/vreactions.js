@@ -1,4 +1,3 @@
-
 function loadreactions(id_msg, id_emoji, id_member, event) {
 	event.preventDefault();
 
@@ -19,8 +18,13 @@ function loadreactions(id_msg, id_emoji, id_member, event) {
 			},
 			dataType: 'json',
 			success: function(data) {
-				$("#counts-" + id_emoji + "-" + id_msg).text(data['no_of_reactions']);
+				$("#counts-" + id_emoji + "-" + id_msg).text(data['no_of_reactions'] == "0" ? "" : data['no_of_reactions']);
 				$("#who_reacted-" + id_emoji + "-" + id_msg).html(data['who_reacted']);
+				if (data['no_of_reactions'] == "0") {
+					$("#counts-" + id_emoji + "-" + id_msg).parent().removeClass("reacted");
+				} else {
+					$("#counts-" + id_emoji + "-" + id_msg).parent().addClass("reacted");
+				}
 			}
 		});
 	});
